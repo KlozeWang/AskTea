@@ -931,6 +931,13 @@ def _start_router(args, *, has_pd_disaggregation: bool = False, force_new: bool 
 
     from slime.utils.http_utils import run_router
 
+    # Newer sglang_router versions expect unprefixed host/port attributes to
+    # exist on the CLI namespace even when slime excludes those CLI flags.
+    if not hasattr(args, "host"):
+        args.host = router_ip
+    if not hasattr(args, "port"):
+        args.port = router_port
+
     router_args = RouterArgs.from_cli_args(args, use_router_prefix=True)
     router_args.host = router_ip
     router_args.port = router_port

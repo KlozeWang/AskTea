@@ -1,0 +1,83 @@
+description: test_mi300_2
+
+env_defaults:
+  JOB_NAME: test_mi300_2
+  SLATIER: Premium # Premium Standard Basic
+  TARGETNAME: webxtcoresearchcnc
+  SKU: 1x192G8-MI300X-IB-xGMI
+  process_count_per_node: 1
+  BASE_SEED: 0
+  ENVSPLIT: 0
+
+
+target:
+  service: sing
+  # name: turing-codex-cacentral # msroctovc msrresrchvc msrresrchbasicvc gcrprojvc1 msrresrchbasicvc msroctobasicvc msrresrchbasicvc
+  name: webxtcoresearchcnc
+  resource_group: singularitycnc
+  workspace_name: workspace_genai # Workspace_NLC
+
+
+environment:
+  registry: workspacegenaiacr.azurecr.io
+  image: xujiawang/slime:rocm # zewenchi/rocm6.3.4:vllm-0.8.5-numa-patch-ubuntu-22.04-fix-v1
+  # registry: workspacegenaiacr.azurecr.io
+  # image: xingxing/rocm-sgl-dev:upstream_20250312_v1
+  setup:
+  - echo "master_addr:" "$$MASTER_ADDR"
+  - echo "master_port:" $$MASTER_PORT
+  - echo "OMPI_COMM_WORLD_RANK:" $$OMPI_COMM_WORLD_RANK
+  - echo "RANK:" $$RANK
+  - echo "LOCAL_RANK:" $$LOCAL_RANK
+  - export PATH=/home/aiscuser/.local/bin:$$PATH
+  - df -h
+  - ls
+  - sudo apt-get update
+  - sudo apt-get install ffmpeg libsm6 libxext6 git unzip wget -y
+
+code:
+  local_dir: $CONFIG_DIR/..
+
+storage:
+  xujiawang:
+    storage_account_name: msranlpinternhot
+    container_name: xujiawang
+
+# storage:
+#   output:
+#     storage_account_name: conversationhubwus
+#     container_name: xingxing
+#     mount_dir: /mnt/xingxing_blob
+
+search:
+  job_template:
+    name: $JOB_NAME
+    sku: $SKU # 40G8-A100-NvLink 80G8-H100-NvLink 80G4-A100-NvLink 80G4-A100
+    priority: High
+    identity: managed
+    sla_tier: $SLATIER # Standard Premium Basic
+    command:
+    - set -euxo pipefail
+    - echo {OUTDIR}
+    - sudo apt-get update
+    - sudo apt-get install -y curl tar ca-certificates tmux
+    - curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' -o vscode_cli.tar.gz
+    - tar -xf vscode_cli.tar.gz
+    - sudo mv code /usr/local/bin/code
+    - which code
+    - code --version
+    - nohup code tunnel --accept-server-license-terms --name slime > /tmp/vscode_tunnel.log 2>&1 &
+    - ps aux | grep "[c]ode tunnel"
+    - echo "MI300 node ready, keeping job alive..."
+    - tail -f /dev/null
+
+    submit_args:
+      env:
+        {NCCL_DEBUG: "INFO"}
+
+  type: grid
+  max_trials: 500
+  params:
+    - name: OUTDIR
+      spec: discrete
+      values: ["test"]
